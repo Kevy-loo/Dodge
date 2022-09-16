@@ -15,7 +15,7 @@ class Game extends Component {
         super();
         this.canvasRef = React.createRef();
         this.state = {
-            ship: {
+            player: {
                 x: 250,
                 y: 250,
                 width: 20,
@@ -50,7 +50,7 @@ class Game extends Component {
      */
     startGame() {
         this.setState({ 
-            ship:{
+            player:{
                 x: 250,
                 y: 250,
                 width: 20,
@@ -76,7 +76,7 @@ class Game extends Component {
         const context = this.canvasRef.current.getContext("2d");
         context.clearRect(0, 0, this.canvasRef.current.width, this.canvasRef.current.height); //clear it first
         context.fillStyle = "blue"; //use the color blue
-        context.fillRect(this.state.ship.x, this.state.ship.y, this.state.ship.width, this.state.ship.height); //draw the player's rectangle
+        context.fillRect(this.state.player.x, this.state.player.y, this.state.player.width, this.state.player.height); //draw the player's rectangle
         for(let i = 0; i < this.state.bullets.length; i++) { //draw the bullets (in red this time!)
             let bullet = this.state.bullets[i]
             context.fillStyle = "red";
@@ -124,10 +124,10 @@ class Game extends Component {
      * Function to move the player horizontally
      */
     moveHorizontally(value) {
-        let ship = this.state.ship
-        if(ship.x + value <= (maxSize - 20) && ship.x + value >= 0) {
-            ship.x += value 
-            this.setState({ship: ship}, () => this.draw())
+        let player  = this.state.player
+        if(player.x + value <= (maxSize - 20) && player.x + value >= 0) {
+            player.x += value 
+            this.setState({player: player}, () => this.draw())
         }
     }
 
@@ -136,10 +136,10 @@ class Game extends Component {
 
      */
     moveVertically(value) {
-        let ship = this.state.ship
-        if(ship.y + value <= (maxSize - 20) && ship.y + value >= 0) {
-            ship.y += value 
-            this.setState({ship: ship}, () => this.draw())
+        let player = this.state.player
+        if(player.y + value <= (maxSize - 20) && player.y + value >= 0) {
+            player.y += value 
+            this.setState({player: player}, () => this.draw())
         }
     }
 
@@ -172,10 +172,10 @@ class Game extends Component {
             height: 20
         }
         if(bullet.axis === 'x') { //if the bullet moves along the x axis, use the y position of the player as fixed axis
-            bullet.y = this.state.ship.y
+            bullet.y = this.state.player.y
             bullet.direction === '+' ? bullet.x = -20 : bullet.x = maxSize //the starting position is depend from the direction
         } else { //if the bullet moves along the y axis, use the x position of the player as fixed axis
-            bullet.x = this.state.ship.x 
+            bullet.x = this.state.player.x 
             bullet.direction === '+' ? bullet.y = -20 : bullet.y = maxSize //the starting position is depend from the direction
         }
         /**
@@ -194,10 +194,10 @@ class Game extends Component {
     detectCollisions() { 
         
         this.state.bullets.forEach(bullet => { //check for each bullet if the rectangle collides with the player's rectangle
-            if(bullet.x < this.state.ship.x + this.state.ship.width &&
-                bullet.x + bullet.width > this.state.ship.x &&
-                bullet.y < this.state.ship.y + this.state.ship.height &&
-                bullet.y + bullet.width > this.state.ship.y) {
+            if(bullet.x < this.state.player.x + this.state.player.width &&
+                bullet.x + bullet.width > this.state.player.x &&
+                bullet.y < this.state.player.y + this.state.player.height &&
+                bullet.y + bullet.width > this.state.player.y) {
                     //if it does, clear intervals, save highscore and restart the game
                     clearInterval(this.accelerateInterval)
                     clearInterval(this.updateInterval)
