@@ -1,14 +1,12 @@
-import React from "react";
-import GameScreen from './components/GameScreen'
+import React from 'react';
+
+import './App.css';
+import Game from './components/Game.jsx';
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        
-        <p>hello</p>
-      </header>
-        <GameScreen/>
+      <Game/>
     </div>
   );
 }
