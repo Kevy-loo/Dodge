@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-
+import '../Game.css'
 const KEY = { //Keyboard key codes
     LEFT: 37,
     RIGHT: 39,
@@ -77,8 +77,8 @@ class Game extends Component {
         context.clearRect(0, 0, this.canvasRef.current.width, this.canvasRef.current.height); //clear it first
         context.fillStyle = "blue"; //use the color blue
         context.fillRect(this.state.player.x, this.state.player.y, this.state.player.width, this.state.player.height); //draw the player's rectangle
-        for(let i = 0; i < this.state.bullets.length; i++) { //draw the bullets (in red this time!)
-            let bullet = this.state.bullets[i]
+        for(const element of this.state.bullets) { //draw the bullets (in red this time!)
+            let bullet = element
             context.fillStyle = "red";
             context.fillRect(bullet.x, bullet.y, bullet.width, bullet.height)
         }
@@ -95,30 +95,32 @@ class Game extends Component {
     }
 
     /**
-     * Event handler for touch start
-     */
-    handleTouchStart(event) {
-        this.setState({touchStart: event.changedTouches[0]})
+ * Event handler for touch start
+ */
+handleTouchStart(event) {
+    if (event.changedTouches && event.changedTouches.length > 0) {
+        this.setState({ touchStart: event.changedTouches[0] });
     }
-    
-    /**
-     * Event handler for touch end
-     */
-    handleTouchEnd(event) {
-        if(this.state.touchStart !== undefined) {
-            let currentTouch = event.changedTouches[0]
-            let touchStart = this.state.touchStart
-            let deltaX = Math.abs(touchStart.clientX - currentTouch.clientX)
-            let deltaY = Math.abs(touchStart.clientY - currentTouch.clientY)
-            
-            if(deltaX > deltaY) {
-                touchStart.clientX > currentTouch.clientX ? this.moveHorizontally(-20) : this.moveHorizontally(20)
-            } else if (deltaX < deltaY) {
-                touchStart.clientY > currentTouch.clientY ? this.moveVertically(-20): this.moveVertically(20)
-            }
-            this.setState({touchStart: currentTouch})
+}
+
+/**
+ * Event handler for touch end
+ */
+handleTouchEnd(event) {
+    if (this.state.touchStart !== undefined && event.changedTouches && event.changedTouches.length > 0) {
+        let currentTouch = event.changedTouches[0];
+        let touchStart = this.state.touchStart;
+        let deltaX = Math.abs(touchStart.clientX - currentTouch.clientX);
+        let deltaY = Math.abs(touchStart.clientY - currentTouch.clientY);
+
+        if (deltaX > deltaY) {
+            touchStart.clientX > currentTouch.clientX ? this.moveHorizontally(-20) : this.moveHorizontally(20);
+        } else if (deltaX < deltaY) {
+            touchStart.clientY > currentTouch.clientY ? this.moveVertically(-20) : this.moveVertically(20);
         }
+        this.setState({ touchStart: currentTouch });
     }
+}
 
     /**
      * Function to move the player horizontally
@@ -147,66 +149,110 @@ class Game extends Component {
      * Function to update the position of the bullets (in other words make them move)
      */
     updateBullets() {
-        let bullets = this.state.bullets.reduce((filtered, bullet) => {
-            if(bullet[bullet.axis] >= -20 && bullet[bullet.axis] <= maxSize) { //if the bullet trespass the game boundaries, do not store it again
-                bullet.nextFrame()
-                filtered.push(bullet)
-            } else { //which also means you get a point on the score
-                this.setState({score: this.state.score + 1})
+        this.setState(prevState => {
+          const bullets = prevState.bullets.reduce((filtered, bullet) => {
+            if (bullet[bullet.axis] >= -20 && bullet[bullet.axis] <= maxSize) {
+              bullet.nextFrame();
+              filtered.push(bullet);
             }
-            return filtered
-        }, [])
-        this.setState({bullets: bullets}, () => { //update bullets in state and redraw the canvas
-            this.draw()
-        })
-    }
+            return filtered;
+          }, []); // Provide an empty array as the initial value
+      
+          const scoreIncrease = prevState.bullets.length - bullets.length;
+          const newScore = prevState.score + (scoreIncrease * 1);
+      
+          return {
+            bullets,
+            score: newScore,
+          };
+        }, () => {
+          this.detectCollisions(); // Move collision detection here
+          this.draw();
+        });
+      }
+      
+      
+      
 
     /**
      * Function to generate new bullets
      */
-    generateNewBullet() { 
-        let bullet = {
-            axis: Math.round(Math.random()) ? 'x' : 'y', //if random number == 1 the bullet will move on x axis, 
-            direction: Math.round(Math.random()) ? '+' : '-', //if random number == 1 the bullet will go positive
+    generateNewBullet() {
+        this.setState(prevState => {
+          const bullet = {
+            axis: Math.round(Math.random()) ? 'x' : 'y',
+            direction: Math.round(Math.random()) ? '+' : '-',
             width: 20,
-            height: 20
-        }
-        if(bullet.axis === 'x') { //if the bullet moves along the x axis, use the y position of the player as fixed axis
-            bullet.y = this.state.player.y
-            bullet.direction === '+' ? bullet.x = -20 : bullet.x = maxSize //the starting position is depend from the direction
-        } else { //if the bullet moves along the y axis, use the x position of the player as fixed axis
-            bullet.x = this.state.player.x 
-            bullet.direction === '+' ? bullet.y = -20 : bullet.y = maxSize //the starting position is depend from the direction
-        }
-        /**
-         * Function to move to the bullet's next position
-         */
-        bullet.nextFrame = () => {
-            // bullet.direction = 2
-            bullet[bullet.axis] = eval(bullet[bullet.axis] + bullet.direction + "2")
-        }
-        this.setState({bullets: [...this.state.bullets, bullet]}) //update the state
-    }
+            height: 20,
+          };
+      
+          if (bullet.axis === 'x') {
+            bullet.y = prevState.player.y;
+            bullet.x = this.calculateInitialBulletX(bullet.direction);
+          } else {
+            bullet.x = prevState.player.x;
+            bullet.y = this.calculateInitialBulletY(bullet.direction);
+          }
+      
+          bullet.nextFrame = () => {
+            bullet[bullet.axis] += bullet.direction === '+' ? 2 : -2;
+          };
+      
+          return { bullets: [...prevState.bullets, bullet] };
+        });
+      }
+      
+      calculateInitialBulletX(direction) {
+        return direction === '+' ? -20 : maxSize;
+      }
+      
+      calculateInitialBulletY(direction) {
+        return direction === '+' ? -20 : maxSize;
+      }
+      
+      
 
     /**
      * Function to detect collisions
      */
-    detectCollisions() { 
-        
-        this.state.bullets.forEach(bullet => { //check for each bullet if the rectangle collides with the player's rectangle
-            if(bullet.x < this.state.player.x + this.state.player.width &&
-                bullet.x + bullet.width > this.state.player.x &&
-                bullet.y < this.state.player.y + this.state.player.height &&
-                bullet.y + bullet.width > this.state.player.y) {
-                    //if it does, clear intervals, save highscore and restart the game
-                    clearInterval(this.accelerateInterval)
-                    clearInterval(this.updateInterval)
-                    clearInterval(this.generationInterval)
-                    clearInterval(this.detectionInterval)
-                    this.state.score > this.state.highScore ? this.setState({highScore: this.state.score}, () => {this.startGame()}) : this.startGame()
+    detectCollisions() {
+        const { bullets, score, highScore } = this.state;
+        let shouldRestart = false;
+      
+        bullets.forEach(bullet => {
+          if (
+            bullet.x < this.state.player.x + this.state.player.width &&
+            bullet.x + bullet.width > this.state.player.x &&
+            bullet.y < this.state.player.y + this.state.player.height &&
+            bullet.y + bullet.width > this.state.player.y
+          ) {
+            shouldRestart = true;
+          }
+        });
+      
+        if (shouldRestart) {
+          clearInterval(this.accelerateInterval);
+          clearInterval(this.updateInterval);
+          clearInterval(this.generationInterval);
+          clearInterval(this.detectionInterval);
+      
+          const newHighScore = score > highScore ? score : highScore;
+      
+          this.setState(
+            {
+              highScore: newHighScore,
+              score: 0,
+              bullets: [],
+            },
+            () => {
+              this.startGame();
             }
-        })
-    }
+          );
+        }
+      }
+      
+      
+      
 
     /**
      * Function to make bullets being spawned faster with higher velocity
@@ -224,14 +270,12 @@ class Game extends Component {
 
     render() {
         return (
-            <div style={{position: 'fixed', height: '100%', overflow: 'hidden', width: '100%'}}>
-                <h4>Use arrows keys to move</h4>
-                <canvas ref={this.canvasRef} width={maxSize} height={maxSize} style={{border: "2px solid black"}} />
-                <br/>
-                Score: {this.state.score*10} | Highscore: {this.state.highScore*10}
-            </div>
+          <div>
+            <canvas ref={this.canvasRef} width={maxSize} height={maxSize} className="game-canvas" />
+            <div className="score">Score: {this.state.score * 10} | Highscore: {this.state.highScore * 10}</div>
+          </div>
         );
-    }
+      }
 }
 
 export default Game;

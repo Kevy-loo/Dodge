@@ -1,12 +1,21 @@
-import React from 'react';
-
-import './App.css';
+import React, { useState } from 'react';
 import Game from './components/Game.jsx';
+import StartScreen from './components/StartScreen.jsx';
 
 function App() {
+  const [gameStarted, setGameStarted] = useState(false);
+
+  const startGame = () => {
+    setGameStarted(true);
+  }
+
   return (
     <div className="App">
-      <Game/>
+      {gameStarted ? (
+        <Game />
+      ) : (
+        <StartScreen onStartGame={startGame} />
+      )}
     </div>
   );
 }
